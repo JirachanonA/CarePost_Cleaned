@@ -81,4 +81,4 @@ API routes return:
 
 ## Deployment
 
-Deployed to Railway. `nixpacks.toml` sets the install command to `npm install` (not `npm ci`) to ensure Linux-native binaries for `@tailwindcss/oxide` are resolved correctly. `package-lock.json` and `tsconfig.tsbuildinfo` are excluded from the Docker build context via `.dockerignore`.
+Deploys to **Vercel** as a standard Next.js app (no `vercel.json` needed). Set `ANTHROPIC_API_KEY` (and the optional Twilio vars from `.env.example`) in Project → Settings → Environment Variables. AI routes export `maxDuration = 60` for slow document extraction. The Railway/Python files (`railway.toml`, `nixpacks.toml`, `Procfile`, `main.py`, `requirements.txt`) are legacy and ignored by Vercel.

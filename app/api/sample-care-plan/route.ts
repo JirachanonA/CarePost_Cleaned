@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
-import { readFile } from "fs/promises";
-import path from "path";
+// Bundled at build time so it works on serverless hosts (no runtime fs read).
+import sample from "@/fixtures/sample-care-plan.json";
 
 export async function GET() {
-  const fp = path.join(process.cwd(), "fixtures", "sample-care-plan.json");
-  const raw = await readFile(fp, "utf-8");
-  return NextResponse.json(JSON.parse(raw));
+  return NextResponse.json(sample);
 }

@@ -1,3 +1,5 @@
+export const maxDuration = 60;
+
 import { NextResponse } from "next/server";
 import { carePlanSchema } from "@/lib/types/care-plan";
 import { completeJsonText, getAnthropic, parseJsonFromModelText } from "@/lib/llm";
