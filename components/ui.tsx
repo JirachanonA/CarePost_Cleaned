@@ -1,23 +1,14 @@
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 import { ChevronLeft, ChevronRight, FileUp } from "lucide-react";
+import { LogoMark } from "@/components/LogoMark";
 
 export function cx(...parts: (string | false | null | undefined)[]) {
   return parts.filter(Boolean).join(" ");
 }
 
 export function Logo({ size = 64, className }: { size?: number; className?: string }) {
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src="/carepost-logo.png"
-      alt=""
-      width={size}
-      height={size}
-      className={cx("select-none", className)}
-      draggable={false}
-    />
-  );
+  return <LogoMark size={size} className={cx("select-none", className)} />;
 }
 
 export function Wordmark({ className }: { className?: string }) {
@@ -61,7 +52,7 @@ export function ButtonLink({
 
 export function Screen({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <main className={cx("flex flex-1 flex-col px-5 pb-36 pt-[calc(4.25rem+env(safe-area-inset-top))]", className)}>
+    <main className={cx("flex flex-1 flex-col px-5 pb-36 pt-[calc(4.25rem+env(safe-area-inset-top))] lg:px-12 lg:pb-16 lg:pt-12", className)}>
       {children}
     </main>
   );

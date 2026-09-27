@@ -189,7 +189,7 @@ export default function UploadPage() {
       />
 
       {view === "review" ? (
-        <Screen>
+        <Screen className="lg:mx-auto lg:w-full lg:max-w-2xl">
           <header className="mb-6 flex items-center gap-3">
             <button
               type="button"
@@ -244,7 +244,7 @@ export default function UploadPage() {
           {errorBox}
           {busy}
 
-          <div className="mt-auto pt-8">
+          <div className="mt-auto pt-8 lg:mt-8">
             <Button variant="primary" onClick={processFiles} disabled={loading} className="w-full">
               {loading ? <Loader2 className="size-5 animate-spin" /> : <Sparkles className="size-5" />}
               {loading ? "Reading your papers…" : "Make my plan"}
@@ -253,8 +253,8 @@ export default function UploadPage() {
           </div>
         </Screen>
       ) : (
-        <Screen className="items-center text-center">
-          <div className="rise flex flex-col items-center">
+        <Screen className="items-center text-center lg:mx-auto lg:w-full lg:max-w-2xl">
+          <div className="rise flex flex-col items-center lg:hidden">
             <Logo size={88} />
             <Wordmark className="-mt-1 text-[28px]" />
           </div>
@@ -276,8 +276,14 @@ export default function UploadPage() {
             <span className="flex size-24 items-center justify-center rounded-[32px] bg-white shadow-card">
               <Upload className="size-12 text-sun" strokeWidth={2.6} />
             </span>
-            <p className="mt-5 text-[19px] font-semibold">Take a photo of each page</p>
-            <p className="mt-1 text-[15px] text-label-2">Lay the paper flat in good light.</p>
+            <p className="mt-5 text-[19px] font-semibold">
+              <span className="lg:hidden">Take a photo of each page</span>
+              <span className="hidden lg:inline">Drag your files here</span>
+            </p>
+            <p className="mt-1 text-[15px] text-label-2">
+              <span className="lg:hidden">Lay the paper flat in good light.</span>
+              <span className="hidden lg:inline">PDFs or photos of each page — or use the buttons below.</span>
+            </p>
 
             <Button variant="primary" onClick={() => setShowCamera(true)} disabled={loading} className="mt-6 w-full max-w-xs">
               <Camera className="size-5" strokeWidth={2.4} /> Take photos

@@ -18,7 +18,7 @@ export default function AppointmentsPage() {
   ];
 
   return (
-    <Screen>
+    <Screen className="lg:max-w-3xl">
       <BackHeader title="Appointments" />
 
       {plan.follow_ups.length === 0 ? (

@@ -19,7 +19,7 @@ export default function MedicationsPage() {
       }));
 
   return (
-    <Screen>
+    <Screen className="lg:max-w-3xl">
       <BackHeader title="Medications" />
 
       {schedule.length > 0 && (
@@ -41,7 +41,7 @@ export default function MedicationsPage() {
       {plan.medications.length === 0 ? (
         <p className="text-label-2">No medications were found in your papers.</p>
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className="grid gap-3 lg:grid-cols-2">
           {plan.medications.map((m, i) => (
             <li key={i} className="rise" style={{ "--i": i } as React.CSSProperties}>
               <Card className="flex gap-4">

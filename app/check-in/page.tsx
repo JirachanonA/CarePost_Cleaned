@@ -87,9 +87,9 @@ export default function ChatPage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col px-5 pb-[calc(12rem+env(safe-area-inset-bottom))] pt-[calc(4.25rem+env(safe-area-inset-top))]">
+    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-5 pb-[calc(12rem+env(safe-area-inset-bottom))] pt-[calc(4.25rem+env(safe-area-inset-top))] lg:px-12 lg:pb-40 lg:pt-12">
       <header className="flex flex-col items-center text-center">
-        <Logo size={56} />
+        <Logo size={56} className="lg:hidden" />
         <h1 className="display mt-1 text-[28px] font-bold">Companion</h1>
         <p className="mt-0.5 text-[15px] text-label-2">
           {plan ? `Knows your plan: ${plan.diagnosis_or_reason}` : "General recovery questions"}
@@ -161,8 +161,8 @@ export default function ChatPage() {
       <div ref={bottomRef} />
 
       {/* Composer floats above the tab bar */}
-      <div className="fixed inset-x-0 bottom-[calc(6.25rem+env(safe-area-inset-bottom))] z-30 px-5">
-        <div className="glass mx-auto flex max-w-[calc(32rem-2.5rem)] items-end gap-2 rounded-[28px] p-2 pl-5">
+      <div className="fixed inset-x-0 bottom-[calc(6.25rem+env(safe-area-inset-bottom))] z-30 px-5 lg:bottom-8 lg:left-72 lg:px-12">
+        <div className="glass mx-auto flex max-w-[calc(32rem-2.5rem)] lg:max-w-[calc(48rem-6rem)] items-end gap-2 rounded-[28px] p-2 pl-5">
           <label htmlFor="chat-input" className="sr-only">Your question</label>
           <textarea
             id="chat-input"

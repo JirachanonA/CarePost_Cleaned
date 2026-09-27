@@ -90,12 +90,15 @@ export default function TodayPage() {
 
   return (
     <Screen>
-      <div className="flex justify-center">
+      <div className="flex justify-center lg:hidden">
         <Logo size={56} />
       </div>
 
+      <div className="lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:items-start lg:gap-8">
+      <div className="lg:sticky lg:top-12">
+
       {/* Hero — Figma "Your Plan Today" card, solid teal for legible white text */}
-      <section className="rise mt-3 rounded-[40px] bg-gradient-to-br from-brand to-brand-deep px-6 pb-7 pt-6 text-center text-white shadow-[0_14px_36px_rgb(8_145_178/0.3)]">
+      <section className="rise mt-3 rounded-[40px] lg:py-10 bg-gradient-to-br from-brand to-brand-deep px-6 pb-7 pt-6 text-center text-white shadow-[0_14px_36px_rgb(8_145_178/0.3)]">
         <p className="text-[15px] font-medium text-white/85">{todayLabel()}</p>
         <h1 className="display mt-1 text-[36px] font-bold">Your Plan Today</h1>
         <p className="mt-1 text-[20px] font-bold tabular-nums" aria-live="polite">
@@ -135,8 +138,11 @@ export default function TodayPage() {
         </Link>
       )}
 
+      </div>
+
+      <div>
       {/* Checklist — Figma "Sheet - Inspector" */}
-      <Sheet title="Checklist" className="rise mt-5" >
+      <Sheet title="Checklist" className="rise mt-5 lg:mt-3" >
         {plan.todays_checklist.length === 0 ? (
           <p className="px-4 pb-4 pt-2 text-center text-label-2">Nothing to check off today.</p>
         ) : (
@@ -213,6 +219,8 @@ export default function TodayPage() {
           title="Diet, activity & summary"
         />
       </Sheet>
+      </div>
+      </div>
 
       <Disclaimer />
     </Screen>

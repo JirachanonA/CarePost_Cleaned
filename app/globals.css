@@ -113,19 +113,6 @@ h1, h2, h3 { text-wrap: balance; }
 /* ── Google Translate: keep its UI inside our language pill ── */
 body { top: 0 !important; }
 .goog-te-banner-frame, .skiptranslate > iframe, #goog-gt-tt { display: none !important; }
-#google_translate_element .goog-te-gadget { font-size: 0 !important; color: transparent !important; }
-#google_translate_element .goog-te-gadget > span { display: none; }
-#google_translate_element .goog-te-combo {
-  appearance: none;
-  margin: 0 !important;
-  border: 0;
-  background: transparent;
-  font: 600 15px/1 var(--font-sans);
-  color: var(--color-label);
-  padding: 0 4px;
-  min-height: 44px;
-  cursor: pointer;
-}
 
 /* ── Accessibility preferences ── */
 @media (prefers-reduced-motion: reduce) {
@@ -149,3 +136,43 @@ body { top: 0 !important; }
   .glass, .pill { background: #fff; box-shadow: 0 0 0 2px var(--color-label); }
   :root { --color-label-2: #27272a; --color-label-3: #3f3f46; }
 }
+
+/* ── Desktop logo intro (components/LogoIntro.tsx) ── */
+.intro { display: none; }
+@media (min-width: 1024px) {
+  html:not([data-intro="skip"]) .intro {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: grid;
+    place-items: center;
+    background: var(--color-canvas);
+    cursor: pointer;
+    animation: intro-out 550ms var(--ease-out) 1700ms forwards;
+  }
+}
+.intro-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: intro-stage-out 550ms var(--ease-out) 1700ms forwards;
+}
+/* The two L-shapes glide in from opposite corners and lock together */
+.intro-sky, .intro-sun, .intro-core { transform-box: view-box; transform-origin: center; }
+.intro-sky { animation: intro-sky 700ms var(--ease-out) 150ms both; }
+.intro-sun { animation: intro-sun 700ms var(--ease-out) 230ms both; }
+.intro-core { animation: intro-core 300ms ease-out 760ms both; }
+.intro-word {
+  margin-top: 4px;
+  font-size: 64px;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  color: var(--color-brand);
+  animation: intro-word 500ms var(--ease-out) 900ms both;
+}
+@keyframes intro-sky { from { opacity: 0; transform: translate(-110px, 110px) rotate(-8deg); } }
+@keyframes intro-sun { from { opacity: 0; transform: translate(110px, -110px) rotate(-8deg); } }
+@keyframes intro-core { from { opacity: 0; } }
+@keyframes intro-word { from { opacity: 0; transform: translateY(12px); filter: blur(6px); } }
+@keyframes intro-stage-out { to { opacity: 0; transform: scale(0.94); filter: blur(4px); } }
+@keyframes intro-out { to { opacity: 0; visibility: hidden; pointer-events: none; } }

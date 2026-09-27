@@ -24,7 +24,7 @@ export function TabBar() {
   const active = activeIndex(pathname);
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40">
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 lg:hidden">
       <div className="edge-fade-bottom absolute inset-x-0 bottom-0 h-28" aria-hidden />
       <nav
         aria-label="Main"

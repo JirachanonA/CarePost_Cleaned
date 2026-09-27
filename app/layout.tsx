@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { TabBar } from "@/components/TabBar";
-import { GoogleTranslate } from "@/components/GoogleTranslate";
+import { Sidebar } from "@/components/Sidebar";
+import { GoogleTranslate, LanguagePicker } from "@/components/GoogleTranslate";
+import { LogoIntro, introGateScript, translateGuardScript } from "@/components/LogoIntro";
 
 export const metadata: Metadata = {
   title: "CarePost",
@@ -22,9 +24,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: introGateScript }} />
+        <script dangerouslySetInnerHTML={{ __html: translateGuardScript }} />
+      </head>
       <body className="min-h-dvh antialiased" suppressHydrationWarning>
-        <div className="mx-auto flex min-h-dvh max-w-lg flex-col">{children}</div>
+        <LogoIntro />
+        <Sidebar />
+        <div className="lg:pl-72">
+          <div className="mx-auto flex min-h-dvh max-w-lg flex-col lg:max-w-5xl">{children}</div>
+        </div>
+
+        {/* Phone chrome */}
+        <div className="fixed right-4 top-[max(0.75rem,env(safe-area-inset-top))] z-40 lg:hidden">
+          <LanguagePicker variant="floating" />
+        </div>
         <TabBar />
         <GoogleTranslate />
       </body>

@@ -10,10 +10,11 @@ export default function HomePage() {
   const progress = checklistProgress(plan);
 
   return (
-    <Screen className="items-center text-center">
-      <div className="rise mt-8 flex flex-col items-center">
-        <Logo size={168} />
-        <h1 className="display mt-1 text-[52px]">
+    <Screen className="items-center text-center lg:justify-center">
+      <div className="flex w-full flex-col items-center lg:grid lg:max-w-4xl lg:grid-cols-2 lg:items-center lg:gap-16">
+      <div className="rise mt-8 flex flex-col items-center lg:mt-0">
+        <Logo size={168} className="lg:size-[260px]" />
+        <h1 className="display mt-1 text-[52px] lg:text-[64px]">
           <Wordmark />
         </h1>
         <p className="mt-2 max-w-[19rem] text-[19px] leading-snug text-label-2">
@@ -21,7 +22,7 @@ export default function HomePage() {
         </p>
       </div>
 
-      <div className="mt-10 flex w-full max-w-sm flex-col gap-3.5">
+      <div className="mt-10 flex w-full max-w-sm flex-col gap-3.5 lg:mt-0 lg:justify-self-start">
         {ready && plan ? (
           <Link
             href="/plan"
@@ -76,8 +77,9 @@ export default function HomePage() {
           Chat with Companion
         </ButtonLink>
       </div>
+      </div>
 
-      <Disclaimer className="mt-auto max-w-xs pt-10" />
+      <Disclaimer className="mt-auto max-w-xs pt-10 lg:hidden" />
     </Screen>
   );
 }

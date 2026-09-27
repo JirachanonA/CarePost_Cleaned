@@ -40,10 +40,10 @@ export default function WarningsPage() {
   if (!plan) return <Screen><EmptyPlan /></Screen>;
 
   return (
-    <Screen>
+    <Screen className="lg:max-w-3xl">
       <BackHeader title="Warning signs" subtitle="What to do if something feels wrong" />
 
-      <ButtonLink href="tel:911" variant="danger" className="w-full text-[19px]">
+      <ButtonLink href="tel:911" variant="danger" className="w-full text-[19px] lg:w-auto lg:px-10">
         <Phone className="size-5" strokeWidth={2.6} /> Call 911
       </ButtonLink>
 

@@ -37,13 +37,13 @@ export default function DetailsPage() {
   if (!plan) return <Screen><EmptyPlan /></Screen>;
 
   return (
-    <Screen>
+    <Screen className="lg:max-w-3xl">
       <BackHeader title="About your care" />
 
       <SectionLabel>In plain words</SectionLabel>
       <p className="rounded-[28px] bg-sky-wash p-5 text-[19px] leading-relaxed">{plan.plain_language_summary}</p>
 
-      <div className="mt-6 flex flex-col gap-3">
+      <div className="mt-6 grid gap-3 lg:grid-cols-2 lg:items-start">
         <DoAvoid
           title="Activity"
           icon={<Footprints className="size-6 text-brand" />}
