@@ -35,4 +35,3 @@ tsconfig.tsbuildinfo
 # ide
 .idea
 .vscode
-!.env.example

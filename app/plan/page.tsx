@@ -99,7 +99,7 @@ export default function TodayPage() {
 
       {/* Hero — Figma "Your Plan Today" card, solid teal for legible white text */}
       <section className="rise mt-3 rounded-[40px] lg:py-10 bg-gradient-to-br from-brand to-brand-deep px-6 pb-7 pt-6 text-center text-white shadow-[0_14px_36px_rgb(8_145_178/0.3)]">
-        <p className="text-[15px] font-medium text-white/85">{todayLabel()}</p>
+        <p className="text-[15px] font-medium text-white/85">{todayLabel()} · Sample plan</p>
         <h1 className="display mt-1 text-[36px] font-bold">Your Plan Today</h1>
         <p className="mt-1 text-[20px] font-bold tabular-nums" aria-live="polite">
           {allDone ? "All done — nice work" : `${progress.done} of ${progress.total} done`}

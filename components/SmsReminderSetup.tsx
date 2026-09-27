@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Loader2, MessageSquareText } from "lucide-react";
 import type { MedScheduleItem } from "@/lib/types/care-plan";
 import { Button } from "@/components/ui";
+import { wait } from "@/lib/demo";
 
 type Status = "idle" | "loading" | "error";
 type TestStatus = "idle" | "sending" | "sent" | "error";
@@ -24,28 +25,12 @@ export function SmsReminders({ schedule }: { schedule: MedScheduleItem[] }) {
     e.preventDefault();
     setStatus("loading");
     setErrorMsg("");
-    try {
-      const res = await fetch("/api/schedule-reminders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, schedule }),
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        let message = "Couldn’t set up reminders";
-        try { message = JSON.parse(text).error ?? message; } catch { /* non-JSON body */ }
-        throw new Error(message);
-      }
-      const { sids } = await res.json();
-      localStorage.setItem("reminder_sids", JSON.stringify(sids));
-      localStorage.setItem("sms_registered", "true");
-      localStorage.setItem("sms_phone", phone);
-      setRegisteredPhone(phone);
-      setStatus("idle");
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Something went wrong");
-      setStatus("error");
-    }
+    // Demo mode: simulate Twilio instead of sending real texts
+    await wait(900);
+    localStorage.setItem("sms_registered", "true");
+    localStorage.setItem("sms_phone", phone);
+    setRegisteredPhone(phone);
+    setStatus("idle");
   }
 
   function reset() {
@@ -57,18 +42,9 @@ export function SmsReminders({ schedule }: { schedule: MedScheduleItem[] }) {
   }
 
   async function sendTest() {
-    if (!registeredPhone) return;
     setTestStatus("sending");
-    try {
-      const res = await fetch("/api/test-sms", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: registeredPhone }),
-      });
-      setTestStatus(res.ok ? "sent" : "error");
-    } catch {
-      setTestStatus("error");
-    }
+    await wait(700);
+    setTestStatus("sent");
   }
 
   if (registeredPhone !== null) {
@@ -77,7 +53,7 @@ export function SmsReminders({ schedule }: { schedule: MedScheduleItem[] }) {
         <div className="flex items-start gap-4">
           <MessageSquareText className="mt-0.5 size-6 shrink-0 text-brand-ink" />
           <div className="min-w-0 flex-1">
-            <p className="text-[17px] font-semibold">Text reminders are on</p>
+            <p className="text-[17px] font-semibold">Text reminders are on <span className="text-[13px] font-medium text-label-3">(demo)</span></p>
             <p className="text-[15px] text-label-2">
               We&apos;ll text {registeredPhone || "you"} at each medicine time today.
             </p>
@@ -101,7 +77,7 @@ export function SmsReminders({ schedule }: { schedule: MedScheduleItem[] }) {
         <MessageSquareText className="mt-0.5 size-6 shrink-0 text-brand-ink" />
         <div>
           <p className="text-[17px] font-semibold">Get text reminders</p>
-          <p className="text-[15px] text-label-2">We&apos;ll text you when it&apos;s time for each medicine. No app needed.</p>
+          <p className="text-[15px] text-label-2">We&apos;ll text you when it&apos;s time for each medicine. Demo only — no texts are actually sent.</p>
         </div>
       </div>
       <label htmlFor="sms-phone" className="mt-4 block text-[15px] font-semibold text-label-2">

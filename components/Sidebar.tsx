@@ -76,7 +76,7 @@ export function Sidebar() {
       <div className="mt-auto flex flex-col gap-3">
         <LanguagePicker variant="sidebar" />
         <p className="px-2 text-[12px] leading-relaxed text-label-3">
-          Not medical advice. In an emergency, call 911.
+          Demo with a sample plan. Not medical advice. In an emergency, call 911.
         </p>
       </div>
     </aside>

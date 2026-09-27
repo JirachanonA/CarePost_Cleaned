@@ -11,15 +11,13 @@ npm run build      # production build
 npm run lint
 ```
 
-Required env var: `ANTHROPIC_API_KEY`. Copy `.env.example` to `.env` and fill in values. Twilio vars are optional (only needed for SMS reminders).
+No environment variables needed — this is a demo build (see Deployment).
 
 ## Tech Stack
 
-- **Next.js 15 App Router** — all pages under `app/`, all API routes under `app/api/`
+- **Next.js 15 App Router** — all pages under `app/` (fully static; no API routes)
 - **Tailwind CSS v4** — uses `@tailwindcss/postcss` plugin (not the v3 plugin)
-- **Anthropic SDK** — Claude Haiku by default (`ANTHROPIC_MODEL` env var to override); Sonnet for extraction
-- **Twilio SDK** — SMS medication reminders (optional)
-- **Zod** — runtime validation of all LLM output via schemas in `lib/types/care-plan.ts`
+- **Zod** — `CarePlan` schema/types in `lib/types/care-plan.ts`
 
 The Python files (`main.py`, `requirements.txt`, `Procfile`) are legacy artifacts. The app runs entirely on Next.js.
 
@@ -28,57 +26,28 @@ The Python files (`main.py`, `requirements.txt`, `Procfile`) are legacy artifact
 ### Data Flow
 
 1. User pastes discharge text or captures an image on `/upload`
-2. Images go to `POST /api/extract-image` (Claude vision → raw text), then text goes to `POST /api/extract` (Claude Sonnet → structured `CarePlan` JSON)
+2. `demoExtract()` in `lib/demo.ts` shows progress steps and returns the sample `CarePlan`
 3. `CarePlan` is saved to `localStorage` (key: `pdc-care-plan-v1`) via `lib/care-plan-storage.ts`
 4. `/plan` (Today) renders the hero, warning signs and checklist; `/plan/medications`, `/plan/warnings`, `/plan/appointments`, `/plan/details` hold the rest
-5. `/check-in` streams chat responses from `POST /api/chat` with the care plan injected as system context
+5. `/check-in` streams scripted replies from `demoReply()` based on the loaded plan
 
-The `CarePlan` Zod schema in `lib/types/care-plan.ts` is the contract between all API routes and pages — every route validates LLM output against it before responding.
+The `CarePlan` type in `lib/types/care-plan.ts` is the data contract every page renders from.
 
 ### Key Files
 
 | File | Purpose |
 |---|---|
 | `lib/types/care-plan.ts` | All Zod schemas — change here first when modifying data shape |
-| `lib/llm.ts` | `getAnthropic()`, `getModel()`, `completeJsonText()`, `parseJsonFromModelText()` |
-| `lib/prompts/extract.ts` | System prompt + user message builder for discharge extraction |
-| `lib/prompts/checkin.ts` | System prompt + user message builder for symptom triage |
 | `lib/care-plan-storage.ts` | localStorage read/write; saving clears old reminder state |
 | `lib/reminders.ts` | Browser Notification API scheduling; `getActiveReminder()` drives the med banner |
-| `lib/demo-checkin.ts` | Rule-based triage fallback (no LLM) used when API is unavailable |
+| `lib/demo.ts` | Demo mode: simulated extraction, scripted chat replies, fake SMS |
 | `app/globals.css` | Design tokens (`@theme`), `.glass` / `.pill` / `.pressable` materials, a11y media queries |
 | `components/ui.tsx` | Shared UI primitives (Button, Screen, Sheet, RowLink, ProgressBar, EmptyPlan…) — use these, not ad-hoc classes |
 | `lib/use-care-plan.ts` | `useCarePlan()` hook — loads plan after mount with a `ready` flag |
-| `fixtures/sample-care-plan.json` | Demo care plan loaded by `GET /api/sample-care-plan` |
-
-### API Routes
-
-| Route | Method | Purpose |
-|---|---|---|
-| `/api/extract` | POST | Raw discharge text → `CarePlan` (Claude Sonnet) |
-| `/api/extract-image` | POST | Image (FormData) → raw text (Claude Haiku vision) |
-| `/api/chat` | POST | Streaming chat with care plan context injected |
-| `/api/check-in` | POST | Symptoms + red flags → triage tier (`home`/`provider`/`urgent`) |
-| `/api/schedule-reminders` | POST | Schedule Twilio SMS for med times today |
-| `/api/cancel-reminders` | POST | Cancel scheduled Twilio message SIDs |
-| `/api/visit-prep` | POST | `CarePlan` → appointment prep guide (what to bring/mention) |
-| `/api/sample-care-plan` | GET | Returns `fixtures/sample-care-plan.json` |
-| `/api/health` | GET | `{ ok: true }` |
-
-All routes return `503` when `ANTHROPIC_API_KEY` is missing. `/api/check-in` falls back to `demoCheckIn()` on 503.
-
-### Error Handling Pattern
-
-API routes return:
-- `400` — missing/invalid input
-- `422` — LLM returned output that failed Zod validation (logs raw model output)
-- `502` — Claude API error
-- `503` — `ANTHROPIC_API_KEY` not set
-
-### LLM Output Parsing
-
-`parseJsonFromModelText()` in `lib/llm.ts` strips markdown code fences before `JSON.parse`. Every extraction route wraps the parsed object in the relevant Zod schema's `.parse()` — validation errors surface as 422.
+| `fixtures/sample-care-plan.json` | The sample care plan every demo upload resolves to |
 
 ## Deployment
 
-Deploys to **Vercel** as a standard Next.js app (no `vercel.json` needed). Set `ANTHROPIC_API_KEY` (and the optional Twilio vars from `.env.example`) in Project → Settings → Environment Variables. AI routes export `maxDuration = 60` for slow document extraction. The Railway/Python files (`railway.toml`, `nixpacks.toml`, `Procfile`, `main.py`, `requirements.txt`) are legacy and ignored by Vercel.
+**Demo build — no API keys.** All AI and SMS behavior is simulated client-side in `lib/demo.ts`: uploads/photos/pasted text play progress steps then load `fixtures/sample-care-plan.json`, the Companion chat streams scripted replies grounded in the plan, and SMS reminders are faked. There are no API routes, so the whole app is static. The original Claude/Twilio routes live in git history (before the "demo mode" commit).
+
+Deploys to Vercel as a standard Next.js app — no environment variables or `vercel.json` needed. The Railway/Python files are legacy and ignored.

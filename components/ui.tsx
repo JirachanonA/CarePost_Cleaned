@@ -184,8 +184,8 @@ export function EmptyPlan({ title = "No plan yet" }: { title?: string }) {
 export function Disclaimer({ className }: { className?: string }) {
   return (
     <p className={cx("mt-8 text-center text-[13px] leading-relaxed text-label-3", className)}>
-      CarePost organizes the instructions you provide. It is not medical advice.
-      In an emergency, call 911.
+      Demo only — every upload shows the same sample plan, not your real
+      instructions. Not medical advice. In an emergency, call 911.
     </p>
   );
 }

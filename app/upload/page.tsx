@@ -2,8 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import type { CarePlan } from "@/lib/types/care-plan";
 import { saveCarePlan } from "@/lib/care-plan-storage";
+import { demoExtract, samplePlan, wait } from "@/lib/demo";
 import { CameraCapture } from "@/components/CameraCapture";
 import { Camera, ChevronLeft, FileText, Image as ImageIcon, Loader2, Plus, Sparkles, Type, Upload, X } from "lucide-react";
 import { Button, Disclaimer, Logo, Screen, Wordmark, cx } from "@/components/ui";
@@ -22,24 +22,6 @@ function FileIcon({ file }: { file: File }) {
 function fileSize(file: File) {
   const kb = file.size / 1024;
   return kb < 1024 ? `${Math.round(kb)} KB` : `${(kb / 1024).toFixed(1)} MB`;
-}
-
-async function extractFile(file: File): Promise<string> {
-  const isPdf = file.type === "application/pdf";
-  const form = new FormData();
-  if (isPdf) {
-    form.append("pdf", file, file.name);
-  } else {
-    form.append("image", file, file.name);
-  }
-  const res = await fetch(isPdf ? "/api/extract-pdf" : "/api/extract-image", {
-    method: "POST",
-    body: form,
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error ?? "Extraction failed");
-  if (!data.raw_text) throw new Error("No text found in file");
-  return data.raw_text as string;
 }
 
 export default function UploadPage() {
@@ -96,68 +78,32 @@ export default function UploadPage() {
     setError(null);
     setLoading(true);
     setLoadingMsg("Loading sample…");
+    await wait(500);
+    saveCarePlan(samplePlan());
+    router.push("/plan");
+  }
+
+  // Demo mode: no documents leave the device; every path ends in the sample plan.
+  async function run(pages: number) {
+    setError(null);
+    setLoading(true);
     try {
-      const res = await fetch("/api/sample-care-plan");
-      if (!res.ok) throw new Error("Could not load sample");
-      saveCarePlan((await res.json()) as CarePlan);
+      saveCarePlan(await demoExtract(pages, setLoadingMsg));
       router.push("/plan");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load sample");
-    } finally {
+    } catch {
+      setError("Something went wrong. Please try again.");
       setLoading(false);
       setLoadingMsg("");
     }
   }
 
-  async function extractText() {
-    setError(null);
-    const raw = text.trim();
-    if (!raw) { setError("Paste your discharge text first."); return; }
-    setLoading(true);
-    setLoadingMsg("Extracting…");
-    try {
-      const res = await fetch("/api/extract", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ raw_text: raw }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.hint ? `${data.error} — ${data.hint}` : data.error ?? "Failed");
-      saveCarePlan(data.care_plan as CarePlan);
-      router.push("/plan");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
-    } finally {
-      setLoading(false);
-      setLoadingMsg("");
-    }
+  function extractText() {
+    if (!text.trim()) { setError("Paste your discharge text first."); return; }
+    run(1);
   }
 
-  async function processFiles() {
-    setError(null);
-    setLoading(true);
-    const parts: string[] = [];
-    try {
-      for (let i = 0; i < files.length; i++) {
-        setLoadingMsg(`Reading file ${i + 1} of ${files.length}…`);
-        parts.push(await extractFile(files[i]));
-      }
-      setLoadingMsg("Building your care plan…");
-      const res = await fetch("/api/extract", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ raw_text: parts.join("\n\n---\n\n") }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.hint ? `${data.error} — ${data.hint}` : data.error ?? "Failed");
-      saveCarePlan(data.care_plan as CarePlan);
-      router.push("/plan");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
-    } finally {
-      setLoading(false);
-      setLoadingMsg("");
-    }
+  function processFiles() {
+    run(files.length);
   }
 
   const busy = loading && (
@@ -261,6 +207,9 @@ export default function UploadPage() {
 
           <h1 className="display mt-5 text-[30px] font-bold">Add your discharge papers</h1>
           <p className="mt-1.5 text-label-2">A photo, a PDF, or the text itself.</p>
+          <p className="mt-3 rounded-pill bg-sun-wash px-4 py-1.5 text-[14px] font-semibold text-sun-ink">
+            Demo: nothing is uploaded — you&apos;ll see a sample plan
+          </p>
 
           {/* Upload well — the light-blue sheet from Figma */}
           <div
