@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { SwitchCamera, X } from "lucide-react";
 
 interface Props {
   onCapture: (blob: Blob) => void;
@@ -65,51 +66,54 @@ export function CameraCapture({ onCapture, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3">
-        <button onClick={onClose} className="text-white text-sm font-medium px-3 py-2">
-          ✕ Cancel
-        </button>
-        <span className="text-white text-sm font-semibold">Camera</span>
-        <button onClick={flipCamera} className="text-white text-sm font-medium px-3 py-2">
-          ⇄ Flip
-        </button>
-      </div>
-
-      {/* Video feed */}
+    <div className="fixed inset-0 z-50 flex flex-col bg-black" role="dialog" aria-label="Camera">
       <div className="relative flex-1 overflow-hidden">
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className="h-full w-full object-cover"
-        />
-        {/* Corner guides */}
-        <div className="pointer-events-none absolute inset-6 rounded-2xl border-2 border-white/20">
-          <div className="absolute left-0 top-0 h-8 w-8 border-l-4 border-t-4 border-white rounded-tl-xl" />
-          <div className="absolute right-0 top-0 h-8 w-8 border-r-4 border-t-4 border-white rounded-tr-xl" />
-          <div className="absolute bottom-0 left-0 h-8 w-8 border-b-4 border-l-4 border-white rounded-bl-xl" />
-          <div className="absolute bottom-0 right-0 h-8 w-8 border-b-4 border-r-4 border-white rounded-br-xl" />
+        <video ref={videoRef} autoPlay playsInline muted className="h-full w-full object-cover" />
+
+        {/* Document guide */}
+        <div className="pointer-events-none absolute inset-x-6 bottom-8 top-24 rounded-[28px] ring-1 ring-white/25">
+          <div className="absolute left-0 top-0 size-10 rounded-tl-[28px] border-l-4 border-t-4 border-white" />
+          <div className="absolute right-0 top-0 size-10 rounded-tr-[28px] border-r-4 border-t-4 border-white" />
+          <div className="absolute bottom-0 left-0 size-10 rounded-bl-[28px] border-b-4 border-l-4 border-white" />
+          <div className="absolute bottom-0 right-0 size-10 rounded-br-[28px] border-b-4 border-r-4 border-white" />
         </div>
+
+        <div className="absolute inset-x-0 top-0 flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))]">
+          <button
+            onClick={onClose}
+            aria-label="Close camera"
+            className="pressable flex size-12 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-md"
+          >
+            <X className="size-6" />
+          </button>
+          <span className="rounded-full bg-black/45 px-4 py-2 text-[15px] font-semibold text-white backdrop-blur-md">
+            Fit the page in the frame
+          </span>
+          <button
+            onClick={flipCamera}
+            aria-label="Switch camera"
+            className="pressable flex size-12 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-md"
+          >
+            <SwitchCamera className="size-6" />
+          </button>
+        </div>
+
         {error && (
-          <div className="absolute inset-x-4 top-4 rounded-xl bg-red-900/80 px-4 py-3 text-sm text-red-200">
+          <div role="alert" className="absolute inset-x-4 top-24 rounded-2xl bg-white px-5 py-4 text-[17px] text-danger-ink">
             {error}
           </div>
         )}
       </div>
 
-      {/* Capture button */}
-      <div className="flex flex-col items-center gap-3 px-6 pb-10 pt-6">
+      <div className="flex justify-center bg-black px-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-6">
         <button
           onClick={capture}
           disabled={!ready}
-          className="size-20 rounded-full border-4 border-white bg-white/20 disabled:opacity-40 active:scale-95 transition-transform"
+          className="pressable flex size-20 items-center justify-center rounded-full ring-4 ring-white disabled:opacity-40"
         >
-          <span className="sr-only">Capture</span>
+          <span className="size-16 rounded-full bg-white" />
+          <span className="sr-only">Take photo</span>
         </button>
-        <p className="text-xs text-white/50">Tap to capture your discharge document</p>
       </div>
     </div>
   );

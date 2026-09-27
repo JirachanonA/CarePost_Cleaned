@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import type { CarePlan } from "@/lib/types/care-plan";
 import { loadCarePlan } from "@/lib/care-plan-storage";
-import { Disclaimer } from "@/components/Disclaimer";
+import { ArrowUp } from "lucide-react";
+import { Logo, cx } from "@/components/ui";
 
 interface Message {
   role: "user" | "assistant";
@@ -13,7 +14,7 @@ interface Message {
 
 const SUGGESTIONS = [
   "What should I watch out for?",
-  "Can I take ibuprofen with my medication?",
+  "Can I take ibuprofen with my medicine?",
   "When should I call my doctor?",
   "What foods should I avoid?",
 ];
@@ -86,100 +87,104 @@ export default function ChatPage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col pt-8">
-      <div className="px-5">
-        <p className="text-sm text-stone-500">Assistant</p>
-        <h1 className="mt-1 text-2xl font-semibold text-stone-900">Ask anything</h1>
-        {plan && (
-          <p className="mt-1 text-sm text-stone-500">{plan.diagnosis_or_reason}</p>
-        )}
-      </div>
+    <main className="flex flex-1 flex-col px-5 pb-[calc(12rem+env(safe-area-inset-bottom))] pt-[calc(4.25rem+env(safe-area-inset-top))]">
+      <header className="flex flex-col items-center text-center">
+        <Logo size={56} />
+        <h1 className="display mt-1 text-[28px] font-bold">Companion</h1>
+        <p className="mt-0.5 text-[15px] text-label-2">
+          {plan ? `Knows your plan: ${plan.diagnosis_or_reason}` : "General recovery questions"}
+        </p>
+      </header>
 
-      <div className="mt-4 flex-1 overflow-y-auto px-5 pb-4">
-        {messages.length === 0 && (
-          <div className="mt-2 space-y-2">
-            <p className="text-sm text-stone-500">
-              {plan
-                ? "Ask me anything about your recovery, medications, or care plan."
-                : "Ask me general post-discharge questions. Upload discharge instructions for personalized answers."}
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {SUGGESTIONS.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => send(s)}
-                  className="rounded-full border border-stone-200 bg-white px-3 py-1.5 text-xs text-stone-700 shadow-sm hover:bg-stone-50"
+      {messages.length === 0 && (
+        <div className="rise mt-8">
+          <p className="text-center text-[17px] text-label-2">
+            {plan
+              ? "Ask anything about your recovery, medicines, or plan."
+              : "Upload your discharge papers for answers about your own care."}
+          </p>
+          <div className="mt-5 flex flex-col gap-2.5">
+            {SUGGESTIONS.map((s, i) => (
+              <button
+                key={s}
+                onClick={() => send(s)}
+                style={{ "--i": i + 1 } as React.CSSProperties}
+                className="rise pressable pill min-h-14 rounded-[22px] px-5 text-left text-[17px] font-medium"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="mt-6 flex flex-col gap-3" aria-live="polite">
+        {messages.map((msg, i) => (
+          <div key={i} className={cx("rise flex", msg.role === "user" ? "justify-end" : "justify-start")}>
+            <div
+              className={cx(
+                "max-w-[85%] px-4 py-3 text-[17px] leading-relaxed",
+                msg.role === "user"
+                  ? "rounded-[22px] rounded-br-md bg-brand-ink text-white"
+                  : "rounded-[22px] rounded-bl-md bg-surface text-label"
+              )}
+            >
+              {msg.role === "assistant" && msg.content ? (
+                <ReactMarkdown
+                  components={{
+                    p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                    strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                    ul: ({ children }) => <ul className="mb-2 ml-5 list-disc space-y-1 last:mb-0">{children}</ul>,
+                    ol: ({ children }) => <ol className="mb-2 ml-5 list-decimal space-y-1 last:mb-0">{children}</ol>,
+                    li: ({ children }) => <li>{children}</li>,
+                  }}
                 >
-                  {s}
-                </button>
-              ))}
+                  {msg.content}
+                </ReactMarkdown>
+              ) : msg.content ? (
+                msg.content
+              ) : (
+                <span className="flex gap-1.5 py-2" aria-label="Companion is typing">
+                  {[0, 1, 2].map((d) => (
+                    <span
+                      key={d}
+                      className="size-2 animate-pulse rounded-full bg-label-3"
+                      style={{ animationDelay: `${d * 150}ms` }}
+                    />
+                  ))}
+                </span>
+              )}
             </div>
           </div>
-        )}
-
-        <div className="space-y-4">
-          {messages.map((msg, i) => (
-            <div
-              key={i}
-              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                  msg.role === "user"
-                    ? "bg-teal-700 text-white"
-                    : "border border-stone-200 bg-white text-stone-800 shadow-sm"
-                }`}
-              >
-                {msg.role === "assistant" && msg.content ? (
-                  <ReactMarkdown
-                    components={{
-                      p: ({ children }) => <p className="mb-1 last:mb-0">{children}</p>,
-                      strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                      ul: ({ children }) => <ul className="ml-4 list-disc space-y-0.5">{children}</ul>,
-                      ol: ({ children }) => <ol className="ml-4 list-decimal space-y-0.5">{children}</ol>,
-                      li: ({ children }) => <li>{children}</li>,
-                    }}
-                  >
-                    {msg.content}
-                  </ReactMarkdown>
-                ) : msg.content ? msg.content : (
-                  <span className="inline-flex gap-1">
-                    <span className="animate-bounce">·</span>
-                    <span className="animate-bounce [animation-delay:0.15s]">·</span>
-                    <span className="animate-bounce [animation-delay:0.3s]">·</span>
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-        <div ref={bottomRef} />
+        ))}
       </div>
+      <div ref={bottomRef} />
 
-      <div className="border-t border-stone-200 bg-white px-4 pb-6 pt-3">
-        <div className="flex items-end gap-2">
+      {/* Composer floats above the tab bar */}
+      <div className="fixed inset-x-0 bottom-[calc(6.25rem+env(safe-area-inset-bottom))] z-30 px-5">
+        <div className="glass mx-auto flex max-w-[calc(32rem-2.5rem)] items-end gap-2 rounded-[28px] p-2 pl-5">
+          <label htmlFor="chat-input" className="sr-only">Your question</label>
           <textarea
+            id="chat-input"
             ref={inputRef}
             rows={1}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type a question…"
+            placeholder="Ask a question…"
             disabled={streaming}
-            className="min-h-[44px] flex-1 resize-none rounded-2xl border border-stone-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600 disabled:opacity-50"
+            className="max-h-32 min-h-11 flex-1 resize-none bg-transparent py-2.5 text-[17px] outline-none placeholder:text-label-3 disabled:opacity-50 [field-sizing:content]"
           />
           <button
             onClick={() => send(input)}
             disabled={!input.trim() || streaming}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-teal-700 text-white disabled:opacity-40"
             aria-label="Send"
+            className="pressable flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-ink text-white disabled:bg-label-3/40"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
-              <path d="M3.105 2.288a.75.75 0 0 0-.826.95l1.414 4.925A1.5 1.5 0 0 0 5.135 9.25h6.115a.75.75 0 0 1 0 1.5H5.135a1.5 1.5 0 0 0-1.442 1.087l-1.414 4.926a.75.75 0 0 0 .826.95 28.896 28.896 0 0 0 15.293-7.154.75.75 0 0 0 0-1.115A28.897 28.897 0 0 0 3.105 2.288Z" />
-            </svg>
+            <ArrowUp className="size-5" strokeWidth={2.8} />
           </button>
         </div>
-        <Disclaimer />
+        <p className="mt-2 text-center text-[12px] text-label-3">Not medical advice. In an emergency, call 911.</p>
       </div>
     </main>
   );

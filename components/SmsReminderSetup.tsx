@@ -1,82 +1,129 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Loader2, MessageSquareText } from "lucide-react";
 import type { MedScheduleItem } from "@/lib/types/care-plan";
+import { Button } from "@/components/ui";
 
-interface Props {
-  schedule: MedScheduleItem[];
-  onScheduled: (sids: string[], phone: string) => void;
-}
+type Status = "idle" | "loading" | "error";
+type TestStatus = "idle" | "sending" | "sent" | "error";
 
-type Status = "idle" | "loading" | "success" | "error";
-
-export function SmsReminderSetup({ schedule, onScheduled }: Props) {
+/** Twilio SMS reminders: sign-up form, or the registered state with a test send. */
+export function SmsReminders({ schedule }: { schedule: MedScheduleItem[] }) {
+  const [registeredPhone, setRegisteredPhone] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const [testStatus, setTestStatus] = useState<TestStatus>("idle");
+
+  useEffect(() => {
+    if (localStorage.getItem("sms_registered")) setRegisteredPhone(localStorage.getItem("sms_phone") ?? "");
+  }, []);
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setStatus("loading");
     setErrorMsg("");
-
     try {
       const res = await fetch("/api/schedule-reminders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone, schedule }),
       });
-
       if (!res.ok) {
         const text = await res.text();
-        let message = "Failed to schedule reminders";
+        let message = "Couldn’t set up reminders";
         try { message = JSON.parse(text).error ?? message; } catch { /* non-JSON body */ }
         throw new Error(message);
       }
-
       const { sids } = await res.json();
-      onScheduled(sids, phone);
-      setStatus("success");
+      localStorage.setItem("reminder_sids", JSON.stringify(sids));
+      localStorage.setItem("sms_registered", "true");
+      localStorage.setItem("sms_phone", phone);
+      setRegisteredPhone(phone);
+      setStatus("idle");
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Something went wrong");
       setStatus("error");
     }
   }
 
-  if (status === "success") {
+  function reset() {
+    localStorage.removeItem("sms_registered");
+    localStorage.removeItem("sms_phone");
+    localStorage.removeItem("reminder_sids");
+    setRegisteredPhone(null);
+    setTestStatus("idle");
+  }
+
+  async function sendTest() {
+    if (!registeredPhone) return;
+    setTestStatus("sending");
+    try {
+      const res = await fetch("/api/test-sms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: registeredPhone }),
+      });
+      setTestStatus(res.ok ? "sent" : "error");
+    } catch {
+      setTestStatus("error");
+    }
+  }
+
+  if (registeredPhone !== null) {
     return (
-      <div className="rounded-2xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-900">
-        <p className="font-semibold">You&apos;re registered! 🎉</p>
-        <p className="mt-1">A confirmation text was just sent to {phone}. You&apos;ll get a reminder at each medication time today.</p>
+      <div className="rounded-[28px] bg-brand-wash p-5">
+        <div className="flex items-start gap-4">
+          <MessageSquareText className="mt-0.5 size-6 shrink-0 text-brand-ink" />
+          <div className="min-w-0 flex-1">
+            <p className="text-[17px] font-semibold">Text reminders are on</p>
+            <p className="text-[15px] text-label-2">
+              We&apos;ll text {registeredPhone || "you"} at each medicine time today.
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 flex gap-2">
+          <Button onClick={sendTest} disabled={testStatus === "sending"} className="min-h-12 flex-1 px-4 text-[15px]">
+            {testStatus === "sending" ? "Sending…" : testStatus === "sent" ? "Test sent ✓" : testStatus === "error" ? "Failed — try again" : "Send a test text"}
+          </Button>
+          <Button variant="ghost" onClick={reset} className="min-h-12 px-4 text-[15px]">
+            Change number
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <form onSubmit={submit} className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
-      <p className="text-sm font-semibold text-stone-900">Get SMS reminders</p>
-      <p className="mt-1 text-xs text-stone-500">
-        We&apos;ll text you at each medication time — no app needed.
-      </p>
-      <div className="mt-3 flex gap-2">
-        <input
-          type="tel"
-          required
-          placeholder="+1 555 000 0000"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          className="min-w-0 flex-1 rounded-xl border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
-        />
-        <button
-          type="submit"
-          disabled={status === "loading"}
-          className="shrink-0 rounded-xl bg-teal-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-        >
-          {status === "loading" ? "Scheduling…" : "Enable"}
-        </button>
+    <form onSubmit={submit} className="rounded-[28px] bg-surface p-5">
+      <div className="flex items-start gap-4">
+        <MessageSquareText className="mt-0.5 size-6 shrink-0 text-brand-ink" />
+        <div>
+          <p className="text-[17px] font-semibold">Get text reminders</p>
+          <p className="text-[15px] text-label-2">We&apos;ll text you when it&apos;s time for each medicine. No app needed.</p>
+        </div>
       </div>
+      <label htmlFor="sms-phone" className="mt-4 block text-[15px] font-semibold text-label-2">
+        Mobile number
+      </label>
+      <input
+        id="sms-phone"
+        type="tel"
+        inputMode="tel"
+        autoComplete="tel"
+        required
+        placeholder="+1 555 000 0000"
+        value={phone}
+        onChange={(e) => setPhone(e.target.value)}
+        className="mt-1.5 min-h-14 w-full rounded-[18px] bg-white px-4 text-[17px] outline-none ring-1 ring-hairline placeholder:text-label-3 focus:ring-2 focus:ring-brand"
+      />
+      <Button type="submit" variant="primary" disabled={status === "loading"} className="mt-3 w-full">
+        {status === "loading" && <Loader2 className="size-5 animate-spin" />}
+        {status === "loading" ? "Setting up…" : "Turn on reminders"}
+      </Button>
       {status === "error" && (
-        <p className="mt-2 text-xs text-red-600">{errorMsg}</p>
+        <p role="alert" className="mt-3 text-[15px] text-danger-ink">{errorMsg}</p>
       )}
     </form>
   );

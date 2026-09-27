@@ -1,28 +1,151 @@
 @import "tailwindcss";
 
-:root {
-  --background: #f8f7f4;
-  --foreground: #1c1917;
-  --brand: #0f766e;
-  --brand-muted: #ccfbf1;
-  --amber-soft: #fffbeb;
+/*
+ * CarePost design tokens — sampled from the Figma logo and Liquid Glass frames.
+ * Brand colors are decorative; text uses the deeper "ink" variants so every
+ * pairing clears WCAG AA (most clear AAA) for older eyes.
+ */
+@theme {
+  --color-brand: #0891b2;        /* logo teal — large type, fills, icons */
+  --color-brand-ink: #0e7490;    /* teal for body-size text (5.4:1 on white) */
+  --color-brand-deep: #155e75;   /* pressed / hero gradient end */
+  --color-brand-wash: #ecfeff;
+  --color-sky: #bae6fd;          /* logo light blue */
+  --color-sky-wash: #f0f9ff;     /* upload well */
+  --color-sun: #f59e0b;          /* logo orange — icons only, never text */
+  --color-sun-ink: #b45309;
+  --color-sun-wash: #fffbeb;
+
+  --color-canvas: #ffffff;
+  --color-surface: #f7f7f8;      /* sheet fill from Figma */
+  --color-fill: #ededed;         /* Fills/Tertiary — selected tab */
+  --color-hairline: rgb(0 0 0 / 0.08);
+  --color-label: #1a1a1a;
+  --color-label-2: #52525b;      /* darker than Figma #727272 for contrast */
+  --color-label-3: #71717a;
+
+  --color-danger: #dc2626;
+  --color-danger-ink: #b91c1c;
+  --color-danger-wash: #fef2f2;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Roboto, sans-serif;
+
+  --radius-pill: 999px;
+  --radius-sheet: 34px;          /* Sheet/iPhone/Top Radius */
+  --radius-card: 24px;
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --shadow-float: 0 8px 20px rgb(0 0 0 / 0.12);   /* Figma tab bar drop shadow */
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 6px 24px rgb(0 0 0 / 0.06);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-label);
+  font-family: var(--font-sans);
+  font-size: 1.0625rem; /* 17px — iOS Body */
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+
+h1, h2, h3 { text-wrap: balance; }
+.display { letter-spacing: -0.03em; line-height: 1.05; }
+
+:focus-visible {
+  outline: 3px solid var(--color-brand);
+  outline-offset: 3px;
+}
+
+/* ── Liquid Glass (web approximation of the Figma "Glass Effect") ── */
+.glass {
+  background: rgb(255 255 255 / 0.65);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.9),
+    inset 0 0 0 1px rgb(255 255 255 / 0.5),
+    0 0 0 1px rgb(0 0 0 / 0.05),
+    var(--shadow-float);
+}
+
+/* Solid-feeling pill used for the Figma "Button - Liquid Glass - Text" on white */
+.pill {
+  background: linear-gradient(180deg, #ffffff 0%, #f4f4f5 100%);
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 0 0 1px rgb(0 0 0 / 0.07),
+    0 6px 16px rgb(0 0 0 / 0.08);
+}
+
+/* Press feedback — fires on pointer-down, fast out */
+.pressable {
+  transition: transform 160ms var(--ease-out), background-color 160ms ease, box-shadow 160ms ease;
+  touch-action: manipulation;
+  user-select: none;
+}
+.pressable:active { transform: scale(0.97); }
+
+/* Scroll-edge fade behind floating chrome instead of a hard divider */
+.edge-fade-bottom {
+  background: linear-gradient(to top, var(--color-canvas) 30%, rgb(255 255 255 / 0));
+}
+
+/* Entry: rise + fade, CSS-only, never blocks input */
+.rise {
+  animation: rise 420ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
 }
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family:
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    Segoe UI,
-    Roboto,
-    Helvetica,
-    Arial,
-    "Apple Color Emoji",
-    "Segoe UI Emoji",
-    sans-serif;
+/* ── Google Translate: keep its UI inside our language pill ── */
+body { top: 0 !important; }
+.goog-te-banner-frame, .skiptranslate > iframe, #goog-gt-tt { display: none !important; }
+#google_translate_element .goog-te-gadget { font-size: 0 !important; color: transparent !important; }
+#google_translate_element .goog-te-gadget > span { display: none; }
+#google_translate_element .goog-te-combo {
+  appearance: none;
+  margin: 0 !important;
+  border: 0;
+  background: transparent;
+  font: 600 15px/1 var(--font-sans);
+  color: var(--color-label);
+  padding: 0 4px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+/* ── Accessibility preferences ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    transition-property: opacity, color, background-color !important;
+  }
+  .pressable:active { transform: none; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    background: #ffffff;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .glass, .pill { background: #fff; box-shadow: 0 0 0 2px var(--color-label); }
+  :root { --color-label-2: #27272a; --color-label-3: #3f3f46; }
 }

@@ -1,66 +1,83 @@
-import Link from "next/link";
-import { Disclaimer } from "@/components/Disclaimer";
+"use client";
 
-const FEATURES = [
-  {
-    href: "/upload",
-    icon: "📷",
-    title: "Upload",
-    description: "Paste or photograph your discharge paperwork",
-  },
-  {
-    href: "/plan",
-    icon: "📋",
-    title: "Your Plan",
-    description: "Daily checklist, meds, and red flags at a glance",
-  },
-  {
-    href: "/check-in",
-    icon: "💬",
-    title: "Ask AI",
-    description: "Chat with an AI about your recovery and medications",
-  },
-];
+import Link from "next/link";
+import { CalendarCheck, ChevronRight, MessageCircleHeart, Upload } from "lucide-react";
+import { ButtonLink, Disclaimer, Logo, ProgressBar, Screen, Wordmark } from "@/components/ui";
+import { checklistProgress, useCarePlan } from "@/lib/use-care-plan";
 
 export default function HomePage() {
-  return (
-    <main className="flex flex-1 flex-col px-6 pb-8 pt-12">
-      <p className="text-base font-semibold uppercase tracking-widest text-teal-700">
-        Post-discharge companion
-      </p>
-      <h1 className="mt-4 text-6xl font-bold leading-tight text-stone-900">
-        Your recovery,<br />simplified.
-      </h1>
-      <p className="mt-5 text-xl leading-relaxed text-stone-500">
-        Turn confusing discharge paperwork into a clear daily plan — with medication reminders and symptom check-ins.
-      </p>
+  const { plan, ready } = useCarePlan();
+  const progress = checklistProgress(plan);
 
-      <div className="mt-10 grid grid-cols-3 gap-4">
-        {FEATURES.map(({ href, icon, title, description }) => (
-          <Link
-            key={href}
-            href={href}
-            className="flex flex-col items-center gap-4 rounded-3xl border border-stone-200 bg-white px-4 py-7 shadow-sm transition hover:shadow-md hover:border-teal-200 text-center"
-          >
-            <span className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-teal-50 text-4xl">
-              {icon}
-            </span>
-            <div>
-              <p className="text-xl font-bold text-stone-900">{title}</p>
-              <p className="mt-1 text-sm text-stone-500">{description}</p>
-            </div>
-          </Link>
-        ))}
+  return (
+    <Screen className="items-center text-center">
+      <div className="rise mt-8 flex flex-col items-center">
+        <Logo size={168} />
+        <h1 className="display mt-1 text-[52px]">
+          <Wordmark />
+        </h1>
+        <p className="mt-2 max-w-[19rem] text-[19px] leading-snug text-label-2">
+          Your discharge papers, turned into a simple plan for today.
+        </p>
       </div>
 
-      <Link
-        href="/upload"
-        className="mt-10 inline-flex min-h-16 items-center justify-center rounded-2xl bg-teal-700 px-6 text-center text-xl font-semibold text-white shadow-sm transition hover:bg-teal-800"
-      >
-        Get started →
-      </Link>
+      <div className="mt-10 flex w-full max-w-sm flex-col gap-3.5">
+        {ready && plan ? (
+          <Link
+            href="/plan"
+            style={{ "--i": 1 } as React.CSSProperties}
+            className="rise pressable flex items-center gap-4 rounded-[28px] bg-gradient-to-br from-brand to-brand-deep p-5 text-left text-white shadow-[0_10px_30px_rgb(8_145_178/0.35)]"
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block text-[15px] font-medium text-white/85">Continue your plan</span>
+              <span className="block text-[22px] font-bold">
+                {progress.total ? `${progress.done} of ${progress.total} done today` : "Open today’s plan"}
+              </span>
+              {progress.total > 0 && <ProgressBar value={progress.ratio} className="mt-3" />}
+            </span>
+            <ChevronRight className="size-6 shrink-0" />
+          </Link>
+        ) : (
+          <ButtonLink
+            href="/upload"
+            variant="primary"
+            className="rise w-full"
+            style={{ "--i": 1 } as React.CSSProperties}
+          >
+            <Upload className="size-5" strokeWidth={2.4} />
+            Upload discharge papers
+          </ButtonLink>
+        )}
 
-      <Disclaimer />
-    </main>
+        <ButtonLink
+          href={ready && plan ? "/upload" : "/plan"}
+          className="rise w-full"
+          style={{ "--i": 2 } as React.CSSProperties}
+        >
+          {ready && plan ? (
+            <>
+              <Upload className="size-5 text-sun" strokeWidth={2.4} />
+              Upload new papers
+            </>
+          ) : (
+            <>
+              <CalendarCheck className="size-5 text-brand" strokeWidth={2.4} />
+              Your plan
+            </>
+          )}
+        </ButtonLink>
+
+        <ButtonLink
+          href="/check-in"
+          className="rise w-full text-brand-ink"
+          style={{ "--i": 3 } as React.CSSProperties}
+        >
+          <MessageCircleHeart className="size-5" strokeWidth={2.4} />
+          Chat with Companion
+        </ButtonLink>
+      </div>
+
+      <Disclaimer className="mt-auto max-w-xs pt-10" />
+    </Screen>
   );
 }

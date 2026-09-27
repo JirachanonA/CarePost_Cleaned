@@ -4,15 +4,19 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import type { CarePlan } from "@/lib/types/care-plan";
 import { saveCarePlan } from "@/lib/care-plan-storage";
-import { Disclaimer } from "@/components/Disclaimer";
 import { CameraCapture } from "@/components/CameraCapture";
+import { Camera, ChevronLeft, FileText, Image as ImageIcon, Loader2, Plus, Sparkles, Type, Upload, X } from "lucide-react";
+import { Button, Disclaimer, Logo, Screen, Wordmark, cx } from "@/components/ui";
 
 type View = "upload" | "review";
 
-function fileIcon(file: File) {
-  if (file.type === "application/pdf") return "📄";
-  if (file.type.startsWith("image/")) return "🖼️";
-  return "📎";
+function FileIcon({ file }: { file: File }) {
+  const Icon = file.type.startsWith("image/") ? ImageIcon : FileText;
+  return (
+    <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-sky-wash text-brand-ink">
+      <Icon className="size-6" />
+    </span>
+  );
 }
 
 function fileSize(file: File) {
@@ -156,6 +160,19 @@ export default function UploadPage() {
     }
   }
 
+  const busy = loading && (
+    <div role="status" className="rise mt-4 flex items-center gap-3 rounded-[22px] bg-brand-wash px-5 py-4 text-left">
+      <Loader2 className="size-6 shrink-0 animate-spin text-brand" />
+      <p className="font-semibold text-brand-deep">{loadingMsg || "Working…"}</p>
+    </div>
+  );
+
+  const errorBox = error && (
+    <p role="alert" className="rise mt-4 rounded-[22px] bg-danger-wash px-5 py-4 text-left text-danger-ink">
+      {error}
+    </p>
+  );
+
   return (
     <>
       {showCamera && (
@@ -171,199 +188,142 @@ export default function UploadPage() {
         onChange={onFileChange}
       />
 
-      {/* ── REVIEW VIEW ── */}
-      {view === "review" && (
-        <main className="flex flex-1 flex-col px-5 pb-8 pt-6">
-          <div className="flex items-center gap-3">
+      {view === "review" ? (
+        <Screen>
+          <header className="mb-6 flex items-center gap-3">
             <button
+              type="button"
               onClick={() => setView("upload")}
-              className="flex size-10 items-center justify-center rounded-xl border border-stone-200 bg-white text-stone-600 hover:bg-stone-50 text-lg"
               aria-label="Back"
+              className="pressable pill flex size-12 shrink-0 items-center justify-center rounded-pill"
             >
-              ←
+              <ChevronLeft className="size-6" strokeWidth={2.4} />
             </button>
             <div>
-              <h1 className="text-2xl font-bold text-stone-900">Review files</h1>
-              <p className="text-sm text-stone-500">{files.length} file{files.length !== 1 ? "s" : ""} ready to process</p>
+              <h1 className="display text-[28px] font-bold">Ready to read</h1>
+              <p className="text-[15px] text-label-2">
+                {files.length} page{files.length !== 1 ? "s" : ""} added
+              </p>
             </div>
-          </div>
+          </header>
 
-          <ul className="mt-6 space-y-3">
+          <ul className="flex flex-col gap-2.5">
             {files.map((file, i) => (
               <li
                 key={`${file.name}-${i}`}
-                className="flex items-center gap-4 rounded-2xl border border-stone-200 bg-white px-5 py-4 shadow-sm"
+                style={{ "--i": i } as React.CSSProperties}
+                className="rise flex items-center gap-4 rounded-[24px] bg-white p-3 pr-2 shadow-card ring-1 ring-hairline"
               >
-                <span className="text-3xl">{fileIcon(file)}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="truncate text-base font-medium text-stone-800">{file.name}</p>
-                  <p className="text-sm text-stone-400">{fileSize(file)}</p>
+                <FileIcon file={file} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold">{file.name}</p>
+                  <p className="text-[15px] text-label-3">{fileSize(file)}</p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => removeFile(i)}
                   disabled={loading}
-                  className="flex size-8 items-center justify-center rounded-lg text-stone-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-40 transition-colors"
                   aria-label={`Remove ${file.name}`}
+                  className="pressable flex size-12 items-center justify-center rounded-pill text-label-3 active:bg-danger-wash active:text-danger disabled:opacity-40"
                 >
-                  ✕
+                  <X className="size-5" />
                 </button>
               </li>
             ))}
           </ul>
 
-          {/* Add more */}
-          <div className="mt-4 flex gap-2">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={loading}
-              className="flex-1 rounded-2xl border border-dashed border-stone-300 bg-stone-50 py-3 text-sm font-medium text-stone-600 hover:border-teal-300 hover:bg-teal-50 hover:text-teal-700 disabled:opacity-60 transition-colors"
-            >
-              + Add files
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowCamera(true)}
-              disabled={loading}
-              className="flex-1 rounded-2xl border border-dashed border-stone-300 bg-stone-50 py-3 text-sm font-medium text-stone-600 hover:border-teal-300 hover:bg-teal-50 hover:text-teal-700 disabled:opacity-60 transition-colors"
-            >
-              📷 Take photo
-            </button>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <Button onClick={() => fileInputRef.current?.click()} disabled={loading} className="px-4">
+              <Plus className="size-5 text-brand" /> Add file
+            </Button>
+            <Button onClick={() => setShowCamera(true)} disabled={loading} className="px-4">
+              <Camera className="size-5 text-brand" /> Add photo
+            </Button>
           </div>
 
-          {error && (
-            <p className="mt-4 rounded-2xl bg-amber-50 border border-amber-200 px-5 py-4 text-base text-amber-900" role="alert">
-              {error}
-            </p>
-          )}
-
-          {loading && loadingMsg && (
-            <div className="mt-4 flex items-center gap-3 rounded-2xl bg-teal-50 border border-teal-100 px-5 py-4">
-              <span className="text-xl animate-spin">⏳</span>
-              <p className="text-base font-medium text-teal-800">{loadingMsg}</p>
-            </div>
-          )}
+          {errorBox}
+          {busy}
 
           <div className="mt-auto pt-8">
-            <button
-              type="button"
-              onClick={processFiles}
-              disabled={loading}
-              className="w-full min-h-14 rounded-2xl bg-teal-700 px-5 text-lg font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:opacity-60"
-            >
-              {loading ? loadingMsg || "Working…" : `Extract care plan →`}
-            </button>
+            <Button variant="primary" onClick={processFiles} disabled={loading} className="w-full">
+              {loading ? <Loader2 className="size-5 animate-spin" /> : <Sparkles className="size-5" />}
+              {loading ? "Reading your papers…" : "Make my plan"}
+            </Button>
+            <p className="mt-3 text-center text-[15px] text-label-3">Usually takes 15–30 seconds.</p>
+          </div>
+        </Screen>
+      ) : (
+        <Screen className="items-center text-center">
+          <div className="rise flex flex-col items-center">
+            <Logo size={88} />
+            <Wordmark className="-mt-1 text-[28px]" />
           </div>
 
-          <Disclaimer />
-        </main>
-      )}
+          <h1 className="display mt-5 text-[30px] font-bold">Add your discharge papers</h1>
+          <p className="mt-1.5 text-label-2">A photo, a PDF, or the text itself.</p>
 
-      {/* ── UPLOAD VIEW ── */}
-      {view === "upload" && (
-        <main className="flex flex-1 flex-col px-5 pb-8 pt-6">
-          {/* Header */}
-          <div className="flex items-center gap-4 mb-8">
-            <div className="flex size-16 items-center justify-center rounded-2xl bg-teal-50 text-4xl">
-              📋
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-stone-900">Add discharge instructions</h1>
-              <p className="text-base text-stone-500">Photo, PDF, or paste text</p>
-            </div>
-          </div>
-
-          {/* Drag & drop zone */}
+          {/* Upload well — the light-blue sheet from Figma */}
           <div
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
             onDrop={onDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={`flex cursor-pointer flex-col items-center justify-center gap-4 rounded-3xl border-2 border-dashed px-6 py-14 text-center transition-colors ${
-              dragOver
-                ? "border-teal-400 bg-teal-50"
-                : "border-stone-200 bg-white hover:border-teal-300 hover:bg-teal-50/50"
-            }`}
+            className={cx(
+              "rise mt-6 flex w-full flex-col items-center rounded-[40px] bg-sky-wash px-6 pb-8 pt-10 ring-2 ring-inset transition-[box-shadow,background-color] duration-200",
+              dragOver ? "bg-sky/60 ring-brand" : "ring-transparent"
+            )}
+            style={{ "--i": 1 } as React.CSSProperties}
           >
-            <span className="text-7xl">📂</span>
-            <div>
-              <p className="text-xl font-semibold text-stone-700">Drop files here</p>
-              <p className="mt-1 text-base text-stone-400">or tap to browse — images & PDFs supported</p>
-            </div>
-            <span className="rounded-xl bg-teal-700 px-6 py-3 text-base font-semibold text-white">
-              Browse files
+            <span className="flex size-24 items-center justify-center rounded-[32px] bg-white shadow-card">
+              <Upload className="size-12 text-sun" strokeWidth={2.6} />
             </span>
+            <p className="mt-5 text-[19px] font-semibold">Take a photo of each page</p>
+            <p className="mt-1 text-[15px] text-label-2">Lay the paper flat in good light.</p>
+
+            <Button variant="primary" onClick={() => setShowCamera(true)} disabled={loading} className="mt-6 w-full max-w-xs">
+              <Camera className="size-5" strokeWidth={2.4} /> Take photos
+            </Button>
+            <Button onClick={() => fileInputRef.current?.click()} disabled={loading} className="mt-3 w-full max-w-xs">
+              <Upload className="size-5 text-sun" strokeWidth={2.4} /> Upload file
+            </Button>
           </div>
 
-          {/* Camera + text options */}
-          <div className="mt-5 grid grid-cols-2 gap-4">
-            <button
-              type="button"
-              onClick={() => setShowCamera(true)}
-              disabled={loading}
-              className="flex flex-col items-center gap-3 rounded-2xl border border-stone-200 bg-white px-4 py-7 text-center shadow-sm transition hover:border-teal-200 hover:bg-teal-50 disabled:opacity-60"
-            >
-              <span className="text-4xl">📷</span>
-              <span className="text-base font-semibold text-stone-700">Use camera</span>
-              <span className="text-sm text-stone-400">Take a photo</span>
-            </button>
-            <button
-              type="button"
+          <div className="mt-4 grid w-full grid-cols-2 gap-3">
+            <Button
               onClick={() => setShowTextarea((v) => !v)}
-              className="flex flex-col items-center gap-3 rounded-2xl border border-stone-200 bg-white px-4 py-7 text-center shadow-sm transition hover:border-teal-200 hover:bg-teal-50"
+              aria-expanded={showTextarea}
+              className="px-4 text-[16px]"
             >
-              <span className="text-4xl">✏️</span>
-              <span className="text-base font-semibold text-stone-700">Paste text</span>
-              <span className="text-sm text-stone-400">Copy from PDF viewer</span>
-            </button>
+              <Type className="size-5 text-brand" /> Paste text
+            </Button>
+            <Button onClick={loadSample} disabled={loading} className="px-4 text-[16px]">
+              <Sparkles className="size-5 text-brand" /> Try sample
+            </Button>
           </div>
 
-          {/* Collapsible textarea */}
           {showTextarea && (
-            <div className="mt-4 space-y-3">
+            <div className="rise mt-4 w-full text-left">
+              <label htmlFor="discharge-text" className="sr-only">Discharge instructions</label>
               <textarea
+                id="discharge-text"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                rows={8}
-                placeholder="Paste discharge instructions here…"
-                className="w-full rounded-2xl border border-stone-200 bg-white p-4 text-base text-stone-900 shadow-sm outline-none placeholder:text-stone-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-600/10"
+                rows={7}
+                placeholder="Paste your discharge instructions here…"
+                className="w-full rounded-[24px] bg-surface p-5 text-[17px] outline-none ring-1 ring-hairline placeholder:text-label-3 focus:bg-white focus:ring-2 focus:ring-brand"
               />
-              <button
-                type="button"
-                onClick={extractText}
-                disabled={loading || !text.trim()}
-                className="w-full min-h-14 rounded-2xl bg-teal-700 px-5 text-lg font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:opacity-60"
-              >
-                {loading ? loadingMsg || "Working…" : "Extract from text →"}
-              </button>
+              <Button variant="primary" onClick={extractText} disabled={loading || !text.trim()} className="mt-3 w-full">
+                <Sparkles className="size-5" /> Make my plan
+              </Button>
             </div>
           )}
 
-          {error && (
-            <p className="mt-4 rounded-2xl bg-amber-50 border border-amber-200 px-5 py-4 text-base text-amber-900" role="alert">
-              {error}
-            </p>
-          )}
-
-          {/* Divider */}
-          <div className="mt-6 flex items-center gap-3">
-            <div className="h-px flex-1 bg-stone-200" />
-            <span className="text-sm text-stone-400">or try a demo</span>
-            <div className="h-px flex-1 bg-stone-200" />
+          <div className="w-full">
+            {errorBox}
+            {busy}
           </div>
 
-          {/* Sample */}
-          <button
-            type="button"
-            onClick={loadSample}
-            disabled={loading}
-            className="mt-4 min-h-12 w-full rounded-2xl border border-stone-200 bg-white px-5 text-base font-medium text-stone-700 shadow-sm transition hover:bg-stone-50 disabled:opacity-60"
-          >
-            {loading ? loadingMsg || "Loading…" : "Load sample discharge"}
-          </button>
-
-          <Disclaimer />
-        </main>
+          <Disclaimer className="max-w-xs" />
+        </Screen>
       )}
     </>
   );

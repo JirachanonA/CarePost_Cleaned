@@ -1,18 +1,19 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { BottomNav } from "@/components/BottomNav";
+import { TabBar } from "@/components/TabBar";
 import { GoogleTranslate } from "@/components/GoogleTranslate";
 
 export const metadata: Metadata = {
-  title: "Post-Discharge Companion",
-  description:
-    "Turn discharge instructions into a daily plan, check-ins, and clear next steps.",
+  title: "CarePost",
+  description: "Turn discharge papers into a simple daily recovery plan.",
+  icons: { icon: "/carepost-logo.png", apple: "/carepost-logo.png" },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#0f766e",
+  viewportFit: "cover",
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({
@@ -23,10 +24,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-dvh antialiased" suppressHydrationWarning>
-        <div className="mx-auto flex min-h-dvh max-w-lg flex-col pt-16">
-          {children}
-        </div>
-        <BottomNav />
+        <div className="mx-auto flex min-h-dvh max-w-lg flex-col">{children}</div>
+        <TabBar />
         <GoogleTranslate />
       </body>
     </html>

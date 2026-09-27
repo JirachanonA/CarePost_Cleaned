@@ -30,7 +30,7 @@ The Python files (`main.py`, `requirements.txt`, `Procfile`) are legacy artifact
 1. User pastes discharge text or captures an image on `/upload`
 2. Images go to `POST /api/extract-image` (Claude vision → raw text), then text goes to `POST /api/extract` (Claude Sonnet → structured `CarePlan` JSON)
 3. `CarePlan` is saved to `localStorage` (key: `pdc-care-plan-v1`) via `lib/care-plan-storage.ts`
-4. `/plan` reads from localStorage to render the daily checklist, alerts, and details
+4. `/plan` (Today) renders the hero, warning signs and checklist; `/plan/medications`, `/plan/warnings`, `/plan/appointments`, `/plan/details` hold the rest
 5. `/check-in` streams chat responses from `POST /api/chat` with the care plan injected as system context
 
 The `CarePlan` Zod schema in `lib/types/care-plan.ts` is the contract between all API routes and pages — every route validates LLM output against it before responding.
@@ -46,6 +46,9 @@ The `CarePlan` Zod schema in `lib/types/care-plan.ts` is the contract between al
 | `lib/care-plan-storage.ts` | localStorage read/write; saving clears old reminder state |
 | `lib/reminders.ts` | Browser Notification API scheduling; `getActiveReminder()` drives the med banner |
 | `lib/demo-checkin.ts` | Rule-based triage fallback (no LLM) used when API is unavailable |
+| `app/globals.css` | Design tokens (`@theme`), `.glass` / `.pill` / `.pressable` materials, a11y media queries |
+| `components/ui.tsx` | Shared UI primitives (Button, Screen, Sheet, RowLink, ProgressBar, EmptyPlan…) — use these, not ad-hoc classes |
+| `lib/use-care-plan.ts` | `useCarePlan()` hook — loads plan after mount with a `ready` flag |
 | `fixtures/sample-care-plan.json` | Demo care plan loaded by `GET /api/sample-care-plan` |
 
 ### API Routes

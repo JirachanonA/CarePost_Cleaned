@@ -1,76 +1,43 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { CarePlan, MedScheduleItem } from "@/lib/types/care-plan";
-import { loadCarePlan, saveCarePlan } from "@/lib/care-plan-storage";
-import { Disclaimer } from "@/components/Disclaimer";
-import { MedReminderBanner } from "@/components/MedReminderBanner";
-import { SmsReminderSetup } from "@/components/SmsReminderSetup";
+import { useEffect, useRef, useState } from "react";
 import {
-  getActiveReminder,
-  requestNotificationPermission,
-  scheduleMedReminders,
-} from "@/lib/reminders";
+  Apple,
+  BookOpen,
+  CalendarDays,
+  Check,
+  ChevronRight,
+  Footprints,
+  ListChecks,
+  Pill,
+  TriangleAlert,
+  type LucideIcon,
+} from "lucide-react";
+import type { CarePlan, MedScheduleItem } from "@/lib/types/care-plan";
+import { MedReminderBanner } from "@/components/MedReminderBanner";
+import { Disclaimer, EmptyPlan, Logo, ProgressBar, RowLink, Screen, SectionLabel, Sheet, cx } from "@/components/ui";
+import { checklistProgress, useCarePlan } from "@/lib/use-care-plan";
+import { getActiveReminder, requestNotificationPermission, scheduleMedReminders } from "@/lib/reminders";
 
-const CATEGORY_ICON: Record<string, string> = {
-  medication: "💊",
-  activity: "🚶",
-  diet: "🥗",
-  follow_up: "📅",
-  education: "📖",
-  other: "✔️",
+const CATEGORY_ICON: Record<CarePlan["todays_checklist"][number]["category"], LucideIcon> = {
+  medication: Pill,
+  activity: Footprints,
+  diet: Apple,
+  follow_up: CalendarDays,
+  education: BookOpen,
+  other: ListChecks,
 };
 
-type Tab = "today" | "alerts" | "appointment" | "details";
-
 function todayLabel() {
-  return new Date().toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
+  return new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 }
 
-export default function PlanPage() {
-  const [plan, setPlan] = useState<CarePlan | null>(null);
+export default function TodayPage() {
+  const { plan, ready, update } = useCarePlan();
   const [activeReminder, setActiveReminder] = useState<MedScheduleItem | null>(null);
   const [dismissedTimes, setDismissedTimes] = useState<Set<string>>(new Set());
-  const [smsRegistered, setSmsRegistered] = useState(false);
-  const [smsPhone, setSmsPhone] = useState("");
-  const [testStatus, setTestStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
-  const [tab, setTab] = useState<Tab>("today");
   const cleanupRef = useRef<(() => void) | null>(null);
-
-  function handleSmsScheduled(sids: string[], phone: string) {
-    setSmsRegistered(true);
-    setSmsPhone(phone);
-    localStorage.setItem("reminder_sids", JSON.stringify(sids));
-    localStorage.setItem("sms_registered", "true");
-    localStorage.setItem("sms_phone", phone);
-  }
-
-  async function sendTestSms() {
-    if (!smsPhone) return;
-    setTestStatus("sending");
-    try {
-      const res = await fetch("/api/test-sms", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: smsPhone }),
-      });
-      setTestStatus(res.ok ? "sent" : "error");
-    } catch {
-      setTestStatus("error");
-    }
-  }
-
-  useEffect(() => {
-    setPlan(loadCarePlan());
-    if (localStorage.getItem("sms_registered")) setSmsRegistered(true);
-    const savedPhone = localStorage.getItem("sms_phone");
-    if (savedPhone) setSmsPhone(savedPhone);
-  }, []);
 
   useEffect(() => {
     const schedule = plan?.medication_schedule_today;
@@ -78,15 +45,11 @@ export default function PlanPage() {
 
     requestNotificationPermission();
     cleanupRef.current?.();
-    cleanupRef.current = scheduleMedReminders(schedule, (item) => {
-      setActiveReminder(item);
-    });
+    cleanupRef.current = scheduleMedReminders(schedule, (item) => setActiveReminder(item));
 
     function checkBanner() {
       const reminder = getActiveReminder(schedule!);
-      if (reminder && !dismissedTimes.has(reminder.time_local)) {
-        setActiveReminder(reminder);
-      }
+      if (reminder && !dismissedTimes.has(reminder.time_local)) setActiveReminder(reminder);
     }
 
     checkBanner();
@@ -95,7 +58,9 @@ export default function PlanPage() {
       clearInterval(interval);
       cleanupRef.current?.();
     };
-  }, [plan, dismissedTimes]);
+    // Re-schedule only when the schedule itself changes, not on every checklist tick
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plan?.medication_schedule_today, dismissedTimes]);
 
   function dismissReminder() {
     if (!activeReminder) return;
@@ -103,360 +68,153 @@ export default function PlanPage() {
     setActiveReminder(null);
   }
 
-  const progress = useMemo(() => {
-    if (!plan) return { done: 0, total: 0 };
-    const items = plan.todays_checklist ?? [];
-    return { done: items.filter((i) => i.done).length, total: items.length };
-  }, [plan]);
-
-  function toggleChecklist(id: string) {
+  function toggle(id: string) {
     if (!plan) return;
-    const next: CarePlan = {
+    update({
       ...plan,
       todays_checklist: plan.todays_checklist.map((item) =>
         item.id === id ? { ...item, done: !item.done } : item
       ),
-    };
-    setPlan(next);
-    saveCarePlan(next);
+    });
   }
 
-  if (!plan) {
-    return (
-      <main className="flex flex-1 flex-col justify-center px-5 pb-8 pt-8">
-        <h1 className="text-2xl font-semibold text-stone-900">Today</h1>
-        <p className="mt-3 text-stone-600">
-          No care plan yet. Add discharge instructions to see your daily plan.
-        </p>
-        <Link
-          href="/upload"
-          className="mt-8 inline-flex min-h-12 items-center justify-center rounded-2xl bg-teal-700 px-5 font-medium text-white"
-        >
-          Go to upload
-        </Link>
-        <Disclaimer />
-      </main>
-    );
-  }
+  if (!ready) return <Screen>{null}</Screen>;
+  if (!plan) return <Screen><EmptyPlan /></Screen>;
 
-  const schedule = plan.medication_schedule_today ?? [];
-  const smsSchedule = schedule.length > 0
-    ? schedule
-    : plan.medications.map((m) => ({
-        time_local: "as scheduled",
-        label: `${m.name}${m.dose ? ` ${m.dose}` : ""} — ${m.frequency_text}`,
-      }));
-
-  const TABS: { id: Tab; label: string; dot?: boolean }[] = [
-    { id: "today", label: "Today" },
-    { id: "alerts", label: "Alerts", dot: plan.red_flags.length > 0 || !!activeReminder },
-    { id: "appointment", label: "Appointment" },
-    { id: "details", label: "Details" },
-  ];
+  const progress = checklistProgress(plan);
+  const allDone = progress.total > 0 && progress.done === progress.total;
+  const serious = plan.red_flags.filter((f) => f.severity_hint === "emergency" || f.severity_hint === "urgent");
+  const watch = (serious.length ? serious : plan.red_flags).slice(0, 2);
+  const meds = plan.medications;
+  const nextFollowUp = plan.follow_ups[0];
 
   return (
-    <main className="flex flex-1 overflow-hidden -mx-[calc((100vw-100%)/2)] w-screen">
-      {/* Left sidebar */}
-      <div className="flex w-[30%] shrink-0 flex-col bg-teal-700 px-6 py-8">
-        <p className="text-sm font-medium uppercase tracking-wide text-teal-300">{todayLabel()}</p>
-        <h1 className="mt-4 text-4xl font-bold leading-tight text-white">Your Plan</h1>
-        <p className="mt-4 text-lg leading-snug text-teal-100">{plan.diagnosis_or_reason}</p>
-
-        {progress.total > 0 && (
-          <div className="mt-8 rounded-2xl bg-teal-600 p-5 text-center">
-            <span className="text-5xl font-bold text-white leading-none">{progress.done}</span>
-            <span className="text-2xl font-bold text-teal-300">/{progress.total}</span>
-            <p className="mt-2 text-sm text-teal-300">tasks done</p>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-teal-500">
-              <div
-                className="h-full rounded-full bg-white transition-all duration-500"
-                style={{ width: `${Math.min(100, (progress.done / progress.total) * 100)}%` }}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Tab buttons — vertical */}
-        <div className="mt-auto flex flex-col gap-2 pt-8">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`relative rounded-xl px-4 py-3 text-left text-base font-semibold transition-colors ${
-                tab === t.id
-                  ? "bg-white text-teal-700"
-                  : "text-teal-200 hover:bg-teal-600"
-              }`}
-            >
-              {t.label}
-              {t.dot && tab !== t.id && (
-                <span className="absolute right-3 top-3 size-2.5 rounded-full bg-amber-400" />
-              )}
-            </button>
-          ))}
-        </div>
+    <Screen>
+      <div className="flex justify-center">
+        <Logo size={56} />
       </div>
 
-      {/* Right content panel */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {activeReminder && (
-          <div className="px-4 pt-4">
-            <MedReminderBanner reminder={activeReminder} onDismiss={dismissReminder} />
-          </div>
-        )}
-        <div className="flex-1 overflow-y-auto px-4 pb-6 pt-4">
+      {/* Hero — Figma "Your Plan Today" card, solid teal for legible white text */}
+      <section className="rise mt-3 rounded-[40px] bg-gradient-to-br from-brand to-brand-deep px-6 pb-7 pt-6 text-center text-white shadow-[0_14px_36px_rgb(8_145_178/0.3)]">
+        <p className="text-[15px] font-medium text-white/85">{todayLabel()}</p>
+        <h1 className="display mt-1 text-[36px] font-bold">Your Plan Today</h1>
+        <p className="mt-1 text-[20px] font-bold tabular-nums" aria-live="polite">
+          {allDone ? "All done — nice work" : `${progress.done} of ${progress.total} done`}
+        </p>
+        <ProgressBar value={progress.ratio} className="mx-auto mt-4 max-w-[16rem]" />
+        <p className="mt-4 line-clamp-2 text-[15px] text-white/85">{plan.diagnosis_or_reason}</p>
+      </section>
 
-        {/* TODAY */}
-        {tab === "today" && (
-          <div className="flex flex-col gap-5">
+      {activeReminder && (
+        <div className="rise mt-4">
+          <MedReminderBanner reminder={activeReminder} onDismiss={dismissReminder} />
+        </div>
+      )}
 
-            {/* Med schedule — full-width grid tiles */}
-            {schedule.length > 0 && (
-              <div>
-                <p className="text-base font-semibold uppercase tracking-wide text-stone-400">Medication Times</p>
-                <ul className="mt-3 grid grid-cols-2 gap-3">
-                  {schedule.map((m, i) => (
-                    <li
-                      key={`${m.time_local}-${i}`}
-                      className="flex flex-col items-center justify-center rounded-2xl border border-teal-100 bg-teal-50 py-5 px-3 shadow-sm"
-                    >
-                      <span className="text-2xl font-extrabold text-teal-700">{m.time_local}</span>
-                      <span className="mt-2 text-center text-base text-stone-600 leading-snug">{m.label}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+      {/* Warning signs stay on Today — the most important safety content */}
+      {watch.length > 0 && (
+        <Link
+          href="/plan/warnings"
+          style={{ "--i": 1 } as React.CSSProperties}
+          className="rise pressable mt-4 flex gap-4 rounded-[28px] bg-danger-wash p-5 ring-1 ring-danger/15"
+        >
+          <TriangleAlert className="mt-0.5 size-7 shrink-0 text-danger" strokeWidth={2.4} />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[13px] font-bold uppercase tracking-[0.06em] text-danger-ink">
+              Get help if you have
+            </span>
+            {watch.map((f, i) => (
+              <span key={i} className="mt-1 block text-[17px] font-semibold leading-snug text-label">
+                {f.text}
+              </span>
+            ))}
+            <span className="mt-2 inline-flex items-center gap-1 text-[15px] font-semibold text-danger-ink">
+              All warning signs <ChevronRight className="size-4" />
+            </span>
+          </span>
+        </Link>
+      )}
 
-            {/* SMS setup */}
-            {smsRegistered ? (
-              <div className="rounded-2xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-900">
-                <div className="flex items-center justify-between">
-                  <p className="font-semibold">You&apos;re registered!</p>
+      {/* Checklist — Figma "Sheet - Inspector" */}
+      <Sheet title="Checklist" className="rise mt-5" >
+        {plan.todays_checklist.length === 0 ? (
+          <p className="px-4 pb-4 pt-2 text-center text-label-2">Nothing to check off today.</p>
+        ) : (
+          <ul className="flex flex-col gap-1 pt-1">
+            {plan.todays_checklist.map((item) => {
+              const Icon = CATEGORY_ICON[item.category] ?? ListChecks;
+              const done = !!item.done;
+              return (
+                <li key={item.id}>
                   <button
-                    onClick={() => {
-                      setSmsRegistered(false);
-                      setTestStatus("idle");
-                      localStorage.removeItem("sms_registered");
-                      localStorage.removeItem("sms_phone");
-                      localStorage.removeItem("reminder_sids");
-                    }}
-                    className="text-xs text-teal-700 underline"
+                    type="button"
+                    role="checkbox"
+                    aria-checked={done}
+                    onClick={() => toggle(item.id)}
+                    className="pressable flex min-h-[64px] w-full items-center gap-3.5 rounded-[26px] px-3 py-2.5 text-left active:bg-black/[0.04]"
                   >
-                    Change
+                    <span
+                      className={cx(
+                        "flex size-8 shrink-0 items-center justify-center rounded-full transition-[background-color,box-shadow,transform] duration-200 ease-[var(--ease-out)]",
+                        done ? "scale-100 bg-brand" : "bg-white ring-2 ring-inset ring-label-3/50"
+                      )}
+                    >
+                      <Check
+                        className={cx(
+                          "size-5 text-white transition-[opacity,transform] duration-200 ease-[var(--ease-out)]",
+                          done ? "scale-100 opacity-100" : "scale-50 opacity-0"
+                        )}
+                        strokeWidth={3}
+                      />
+                    </span>
+                    <span
+                      className={cx(
+                        "min-w-0 flex-1 text-[17px] leading-snug transition-colors duration-200",
+                        done ? "text-label-3 line-through decoration-label-3/60" : "text-label"
+                      )}
+                    >
+                      {item.label}
+                    </span>
+                    <Icon className="size-5 shrink-0 text-label-3" aria-hidden />
                   </button>
-                </div>
-                <p className="mt-1">You&apos;ll receive a reminder at each medication time.</p>
-                <button
-                  onClick={sendTestSms}
-                  disabled={testStatus === "sending"}
-                  className="mt-2 text-xs text-teal-700 underline disabled:opacity-50"
-                >
-                  {testStatus === "sending" ? "Sending…" : testStatus === "sent" ? "Test sent!" : testStatus === "error" ? "Failed — check console" : "Send test message now"}
-                </button>
-              </div>
-            ) : (
-              <SmsReminderSetup schedule={smsSchedule} onScheduled={handleSmsScheduled} />
-            )}
-
-            {/* Checklist */}
-            <div>
-              <p className="text-base font-semibold uppercase tracking-wide text-stone-400">Checklist</p>
-              <ul className="mt-3 grid grid-cols-2 gap-3">
-                {plan.todays_checklist.map((item) => (
-                  <li key={item.id}>
-                    <label className="flex h-full cursor-pointer flex-col rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-                      <span className="text-4xl">{CATEGORY_ICON[item.category] ?? "✔️"}</span>
-                      <span className={`mt-3 flex-1 text-base leading-snug ${item.done ? "line-through text-stone-400" : "text-stone-800"}`}>
-                        {item.label}
-                      </span>
-                      <div className="mt-4 flex justify-end">
-                        <input
-                          type="checkbox"
-                          className="size-7 rounded border-stone-300 text-teal-700 focus:ring-teal-600"
-                          checked={!!item.done}
-                          onChange={() => toggleChecklist(item.id)}
-                        />
-                      </div>
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
+                </li>
+              );
+            })}
+          </ul>
         )}
+      </Sheet>
 
-        {/* ALERTS */}
-        {tab === "alerts" && (() => {
-          const emergency = plan.red_flags.filter(f => f.severity_hint === "emergency");
-          const urgent = plan.red_flags.filter(f => f.severity_hint === "urgent");
-          const watch = plan.red_flags.filter(f => !f.severity_hint || (f.severity_hint !== "emergency" && f.severity_hint !== "urgent"));
-          return (
-            <div className="flex flex-col gap-5">
-              <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm flex flex-col gap-4">
-              {emergency.length > 0 && (
-                <div className="rounded-xl border border-red-300 bg-red-50 p-4">
-                  <p className="text-base font-semibold uppercase tracking-wide text-red-700">🚨 Call 911</p>
-                  <ul className="mt-3 grid grid-cols-2 gap-3">
-                    {emergency.map((f, i) => (
-                      <li key={i} className="flex flex-col gap-3 rounded-xl border border-red-200 bg-white p-4">
-                        <span className="text-3xl">🚨</span>
-                        <span className="text-base text-red-900 leading-snug">{f.text}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+      <SectionLabel className="mt-8">Your care</SectionLabel>
+      <Sheet className="p-1.5">
+        <RowLink
+          href="/plan/medications"
+          icon={<Pill className="size-5" />}
+          title="Medications"
+          detail={meds.length ? meds.map((m) => m.name).join(", ") : "None listed"}
+        />
+        <RowLink
+          href="/plan/warnings"
+          tone="danger"
+          icon={<TriangleAlert className="size-5" />}
+          title="Warning signs"
+          detail={`${plan.red_flags.length} to watch for`}
+        />
+        <RowLink
+          href="/plan/appointments"
+          tone="sun"
+          icon={<CalendarDays className="size-5" />}
+          title="Appointments"
+          detail={nextFollowUp ? `${nextFollowUp.type} · ${nextFollowUp.within_text}` : "None listed"}
+        />
+        <RowLink
+          href="/plan/details"
+          tone="sky"
+          icon={<BookOpen className="size-5" />}
+          title="Diet, activity & summary"
+        />
+      </Sheet>
 
-              {urgent.length > 0 && (
-                <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
-                  <p className="text-base font-semibold uppercase tracking-wide text-amber-700">⚠️ Urgent — Go to ER or Urgent Care</p>
-                  <ul className="mt-3 grid grid-cols-2 gap-3">
-                    {urgent.map((f, i) => (
-                      <li key={i} className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-white p-4">
-                        <span className="text-3xl">⚠️</span>
-                        <span className="text-base text-amber-950 leading-snug">{f.text}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {watch.length > 0 && (
-                <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
-                  <p className="text-base font-semibold uppercase tracking-wide text-stone-500">ℹ️ Monitor & Contact Doctor</p>
-                  <ul className="mt-3 grid grid-cols-2 gap-3">
-                    {watch.map((f, i) => (
-                      <li key={i} className="flex flex-col gap-3 rounded-xl border border-stone-200 bg-white p-4">
-                        <span className="text-3xl">ℹ️</span>
-                        <span className="text-base text-stone-700 leading-snug">{f.text}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Legend */}
-              <div className="border-t border-stone-100 pt-3 flex gap-4 flex-wrap">
-                <span className="flex items-center gap-1.5 text-xs text-stone-500"><span>🚨</span> Call 911</span>
-                <span className="flex items-center gap-1.5 text-xs text-stone-500"><span>⚠️</span> ER / Urgent care</span>
-                <span className="flex items-center gap-1.5 text-xs text-stone-500"><span>ℹ️</span> Call your doctor</span>
-              </div>
-              </div>
-
-              {plan.follow_ups.length > 0 && (
-                <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-                  <p className="text-base font-semibold uppercase tracking-wide text-stone-400">📅 Follow-ups</p>
-                  <ul className="mt-4 grid grid-cols-2 gap-3">
-                    {plan.follow_ups.map((f, i) => (
-                      <li key={i} className="flex flex-col gap-1 rounded-xl border border-stone-100 bg-stone-50 p-4">
-                        <span className="text-base font-semibold text-stone-900">{f.type}</span>
-                        <span className="text-base text-stone-500">{f.within_text}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          );
-        })()}
-
-        {/* APPOINTMENT */}
-        {tab === "appointment" && (
-          <div className="flex flex-col gap-5">
-            {plan.follow_ups?.length === 0 ? (
-              <p className="text-base text-stone-400">No follow-up appointments found in your discharge instructions.</p>
-            ) : (
-              <>
-                {plan.follow_ups.map((f, i) => (
-                  <div key={i} className="rounded-2xl border border-teal-100 bg-teal-50 p-5">
-                    <p className="text-sm font-semibold uppercase tracking-wide text-teal-600">📅 Appointment</p>
-                    <p className="mt-2 text-2xl font-bold text-teal-800">{f.within_text}</p>
-                    <p className="mt-1 text-base text-teal-700">{f.type}{f.provider ? ` — ${f.provider}` : ""}</p>
-                    {f.location && <p className="mt-1 text-sm text-teal-600">📍 {f.location}</p>}
-                    {f.datetime_if_known && <p className="mt-1 text-sm font-medium text-teal-800">🕐 {f.datetime_if_known}</p>}
-                  </div>
-                ))}
-
-                <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-                  <p className="text-sm font-semibold uppercase tracking-wide text-stone-400">What to Bring</p>
-                  <ul className="mt-3 grid grid-cols-2 gap-3">
-                    {["Photo ID & insurance card", "This care plan / discharge paperwork", "Current medication bottles", "List of allergies"].map((item) => (
-                      <li key={item} className="flex items-start gap-2 rounded-xl border border-stone-100 bg-stone-50 p-3 text-sm text-stone-800">
-                        <span className="mt-0.5 text-teal-600 shrink-0">✓</span>
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-                  <p className="text-sm font-semibold uppercase tracking-wide text-stone-400">What to Mention</p>
-                  <ul className="mt-3 space-y-2">
-                    {[
-                      `Your diagnosis: ${plan.diagnosis_or_reason}`,
-                      ...plan.medications.map((m) => `Medication: ${m.name}${m.dose ? ` ${m.dose}` : ""} — ${m.frequency_text ?? ""}`),
-                      ...plan.red_flags.slice(0, 3).map((f) => `Watch for: ${f.text}`),
-                    ].map((item, i) => (
-                      <li key={i} className="flex items-start gap-2 rounded-xl border border-stone-100 bg-stone-50 p-3 text-sm text-stone-800">
-                        <span className="mt-0.5 text-teal-600 shrink-0">→</span>
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* DETAILS */}
-        {tab === "details" && (
-          <div className="flex flex-col gap-5">
-            <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-              <p className="text-base font-semibold uppercase tracking-wide text-stone-400">Summary</p>
-              <p className="mt-3 text-base leading-relaxed text-stone-700">{plan.plain_language_summary}</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-                <p className="text-base font-semibold uppercase tracking-wide text-stone-400">🚶 Activity</p>
-                <p className="mt-4 text-sm font-bold text-teal-700">Do</p>
-                <ul className="mt-2 space-y-2">
-                  {plan.activity.allowances.map((x, i) => (
-                    <li key={i} className="text-base text-stone-700">• {x}</li>
-                  ))}
-                </ul>
-                <p className="mt-4 text-sm font-bold text-red-500">Avoid</p>
-                <ul className="mt-2 space-y-2">
-                  {plan.activity.restrictions.map((x, i) => (
-                    <li key={i} className="text-base text-stone-700">• {x}</li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-                <p className="text-base font-semibold uppercase tracking-wide text-stone-400">🥗 Diet</p>
-                <p className="mt-4 text-sm font-bold text-teal-700">Do</p>
-                <ul className="mt-2 space-y-2">
-                  {plan.diet.do.map((x, i) => (
-                    <li key={i} className="text-base text-stone-700">• {x}</li>
-                  ))}
-                </ul>
-                <p className="mt-4 text-sm font-bold text-red-500">Avoid</p>
-                <ul className="mt-2 space-y-2">
-                  {plan.diet.avoid.map((x, i) => (
-                    <li key={i} className="text-base text-stone-700">• {x}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
-            <Disclaimer />
-          </div>
-        )}
-        </div>
-      </div>
-    </main>
+      <Disclaimer />
+    </Screen>
   );
 }
